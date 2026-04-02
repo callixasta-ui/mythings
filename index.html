@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MyThings — Borrow Tracker by Ctrl Alt Win</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --blue: #4A90D9;
+    --dark: #1A1A2E;
+    --darker: #0f0f1a;
+    --white: #F9F9F9;
+    --gray: #AAAAAA;
+    --light: #EEF4FB;
+    --accent: #7EC8E3;
+    --green: #4CAF50;
+    --red: #E53935;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--darker);
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(15,15,26,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(74,144,217,0.15);
+  }
+
+  .nav-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    color: var(--blue);
+    letter-spacing: -0.5px;
+  }
+
+  .nav-logo span { color: var(--white); }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--gray);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .nav-links a:hover { color: var(--white); }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(74,144,217,0.18) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(74,144,217,0.12);
+    border: 1px solid rgba(74,144,217,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 1.5s ease infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .hero h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -3px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero h1 .blue { color: var(--blue); }
+
+  .hero p {
+    font-size: clamp(16px, 2.5vw, 20px);
+    color: var(--gray);
+    max-width: 520px;
+    line-height: 1.7;
+    margin-bottom: 48px;
+    font-weight: 300;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--blue);
+    color: white;
+    padding: 16px 32px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+  }
+
+  .btn-primary:hover {
+    background: #5aa0e8;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(74,144,217,0.4);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    color: var(--white);
+    padding: 16px 32px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-2px);
+  }
+
+  .hero-meta {
+    margin-top: 64px;
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .hero-meta-item {
+    text-align: center;
+  }
+
+  .hero-meta-item .num {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    color: var(--white);
+    display: block;
+  }
+
+  .hero-meta-item .label {
+    font-size: 12px;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION BASE ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+
+  .section-sub {
+    color: var(--gray);
+    font-size: 16px;
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.7;
+    margin-bottom: 64px;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(74,144,217,0.3), transparent);
+    margin: 0 auto;
+  }
+
+  /* ── FEATURES ── */
+  #features { border-top: none; }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+  }
+
+  .feature-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 32px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(74,144,217,0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    border-color: rgba(74,144,217,0.25);
+    transform: translateY(-4px);
+    background: rgba(74,144,217,0.05);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    font-size: 32px;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .feature-card h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .feature-card p {
+    color: var(--gray);
+    font-size: 14px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ── SCREENSHOTS ── */
+  .screenshots-wrapper {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--blue) transparent;
+  }
+
+  .screenshot-card {
+    flex: 0 0 220px;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    aspect-ratio: 9/19;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray);
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    text-align: center;
+    padding: 16px;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .screenshot-card:hover {
+    border-color: rgba(74,144,217,0.3);
+    transform: translateY(-8px) scale(1.02);
+  }
+
+  .screenshot-label {
+    position: absolute;
+    bottom: 16px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: var(--gray);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .screenshot-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  /* ── INSTALL ── */
+  .install-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+  }
+
+  .install-step {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step-number {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(74,144,217,0.15);
+    border: 1px solid rgba(74,144,217,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    color: var(--blue);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .install-step h4 {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .install-step p {
+    color: var(--gray);
+    font-size: 13px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .install-note {
+    margin-top: 40px;
+    padding: 20px 24px;
+    background: rgba(74,144,217,0.08);
+    border: 1px solid rgba(74,144,217,0.2);
+    border-radius: 14px;
+    font-size: 13px;
+    color: var(--gray);
+    line-height: 1.7;
+  }
+
+  .install-note strong { color: var(--accent); }
+
+  /* ── SUPPORT ── */
+  .support-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .support-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 32px;
+    text-decoration: none;
+    color: var(--white);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .support-card:hover {
+    border-color: rgba(74,144,217,0.3);
+    transform: translateY(-4px);
+    background: rgba(74,144,217,0.05);
+  }
+
+  .support-card-icon { font-size: 32px; }
+
+  .support-card h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .support-card p {
+    color: var(--gray);
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 300;
+    flex: 1;
+  }
+
+  .support-card .arrow {
+    color: var(--blue);
+    font-size: 20px;
+    align-self: flex-end;
+    transition: transform 0.2s;
+  }
+
+  .support-card:hover .arrow { transform: translateX(4px); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 48px 24px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    color: var(--blue);
+    margin-bottom: 12px;
+  }
+
+  .footer-logo span { color: var(--white); }
+
+  .footer-team {
+    font-size: 13px;
+    color: var(--gray);
+    margin-bottom: 24px;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+
+  .footer-links a {
+    color: var(--gray);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--white); }
+
+  .footer-copy {
+    font-size: 12px;
+    color: rgba(170,170,170,0.5);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .hero-meta { gap: 32px; }
+    section { padding: 72px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">My<span>Things</span></div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#support">Support</a></li>
+  </ul>
+  <a href="https://github.com/callixasta-ui/mythings/releases/latest" class="btn-primary" style="padding:10px 20px;font-size:13px;">
+    ⬇ Download
+  </a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">v1.0.0 — Now Available</div>
+  <h1>My<span class="blue">Things</span></h1>
+  <p>A simple, fully offline Android app for tracking borrowed items. Clean. Fast. No account needed.</p>
+  <div class="hero-buttons">
+    <a href="https://github.com/callixasta-ui/mythings/releases/latest" class="btn-primary">
+      ⬇ Download APK
+    </a>
+    <a href="https://github.com/callixasta-ui/mythings" class="btn-secondary">
+      ⭐ View on GitHub
+    </a>
+  </div>
+  <div class="hero-meta">
+    <div class="hero-meta-item">
+      <span class="num">100%</span>
+      <span class="label">Offline</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="num">API 27+</span>
+      <span class="label">Android 8.1+</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="num">Free</span>
+      <span class="label">Forever</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="reveal">
+    <div class="section-label">What it does</div>
+    <h2 class="section-title">Everything you need.<br/>Nothing you don't.</h2>
+    <p class="section-sub">Built for simplicity. Designed for anyone — no tech experience required.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <span class="feature-icon">📦</span>
+      <h3>Track Borrowed Items</h3>
+      <p>Log who borrowed what, when they borrowed it, and any extra notes — all in seconds.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">✅</span>
+      <h3>Mark as Returned</h3>
+      <p>One tap to mark items as returned. Automatic timestamp recorded for your records.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔍</span>
+      <h3>Search & Sort</h3>
+      <p>Find entries instantly by borrower name or item. Sort by newest, oldest, or A–Z.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">📸</span>
+      <h3>Photo Attachments</h3>
+      <p>Attach a photo to any entry. Perfect for documenting the condition of borrowed items.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔒</span>
+      <h3>Hidden Dev Mode</h3>
+      <p>A secret developer panel for advanced entry management, editing, and data control.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">📵</span>
+      <h3>Fully Offline</h3>
+      <p>No internet. No cloud. No account. Your data stays on your device, always.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SCREENSHOTS -->
+<section id="screenshots">
+  <div class="reveal">
+    <div class="section-label">App Preview</div>
+    <h2 class="section-title">Clean UI.<br/>Built for everyone.</h2>
+    <p class="section-sub">Simple enough for parents, powerful enough for power users.</p>
+  </div>
+  <div class="screenshots-wrapper reveal">
+    <div class="screenshot-card">
+      <span class="screenshot-icon">➕</span>
+      <span style="font-size:12px;color:var(--gray);">Add borrow<br/>entries fast</span>
+      <div class="screenshot-label">Borrow</div>
+    </div>
+    <div class="screenshot-card">
+      <span class="screenshot-icon">📋</span>
+      <span style="font-size:12px;color:var(--gray);">View all<br/>entries</span>
+      <div class="screenshot-label">List</div>
+    </div>
+    <div class="screenshot-card">
+      <span class="screenshot-icon">🔄</span>
+      <span style="font-size:12px;color:var(--gray);">Mark items<br/>as returned</span>
+      <div class="screenshot-label">Return</div>
+    </div>
+    <div class="screenshot-card">
+      <span class="screenshot-icon">🛠️</span>
+      <span style="font-size:12px;color:var(--gray);">Advanced<br/>dev controls</span>
+      <div class="screenshot-label">Dev Panel</div>
+    </div>
+    <div class="screenshot-card">
+      <span class="screenshot-icon">👤</span>
+      <span style="font-size:12px;color:var(--gray);">Manage<br/>credentials</span>
+      <div class="screenshot-label">Account</div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--gray);margin-top:16px;font-family:'Space Mono',monospace;">
+    * Replace screenshot placeholders with real app screenshots after publishing.
+  </p>
+</section>
+
+<div class="divider"></div>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="reveal">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">Install in<br/>4 easy steps.</h2>
+    <p class="section-sub">No Play Store needed. Just download, allow, and install.</p>
+  </div>
+  <div class="install-steps reveal">
+    <div class="install-step">
+      <div class="step-number">01</div>
+      <div>
+        <h4>Download the APK</h4>
+        <p>Tap the Download button above to get the latest APK file from GitHub Releases.</p>
+      </div>
+    </div>
+    <div class="install-step">
+      <div class="step-number">02</div>
+      <div>
+        <h4>Allow Unknown Sources</h4>
+        <p>Go to Settings → Security → Enable "Install from Unknown Sources" or tap "Allow" when prompted.</p>
+      </div>
+    </div>
+    <div class="install-step">
+      <div class="step-number">03</div>
+      <div>
+        <h4>Open the APK</h4>
+        <p>Find the downloaded file in your notifications or Downloads folder and tap to open it.</p>
+      </div>
+    </div>
+    <div class="install-step">
+      <div class="step-number">04</div>
+      <div>
+        <h4>Tap Install</h4>
+        <p>Follow the on-screen prompts and tap Install. MyThings will appear on your home screen.</p>
+      </div>
+    </div>
+  </div>
+  <div class="install-note reveal">
+    <strong>⚠️ Note:</strong> MyThings requires Android 8.1 (API 27) or higher. If your device runs an older version, the app may not install correctly.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SUPPORT -->
+<section id="support">
+  <div class="reveal">
+    <div class="section-label">Help & Support</div>
+    <h2 class="section-title">We're here<br/>to help.</h2>
+    <p class="section-sub">Found a bug? Have a suggestion? Reach out — we read everything.</p>
+  </div>
+  <div class="support-grid reveal">
+    <a href="https://github.com/callixasta-ui/mythings/issues/new?labels=bug" class="support-card">
+      <div class="support-card-icon">🐛</div>
+      <h3>Report a Bug</h3>
+      <p>Something not working right? Open an issue on GitHub and we'll look into it.</p>
+      <span class="arrow">→</span>
+    </a>
+    <a href="https://github.com/callixasta-ui/mythings/issues/new?labels=feature+request" class="support-card">
+      <div class="support-card-icon">💡</div>
+      <h3>Request a Feature</h3>
+      <p>Have an idea that would make MyThings better? We'd love to hear it.</p>
+      <span class="arrow">→</span>
+    </a>
+    <a href="https://github.com/callixasta-ui/mythings/releases" class="support-card">
+      <div class="support-card-icon">📦</div>
+      <h3>All Releases</h3>
+      <p>Browse all versions of MyThings including changelogs and older APK downloads.</p>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">My<span>Things</span></div>
+  <div class="footer-team">by Ctrl Alt Win</div>
+  <div class="footer-links">
+    <a href="https://github.com/callixasta-ui/mythings">GitHub</a>
+    <a href="https://github.com/callixasta-ui/mythings/releases/latest">Download</a>
+    <a href="https://github.com/callixasta-ui/mythings/issues">Support</a>
+    <a href="https://github.com/callixasta-ui/mythings/blob/main/LICENSE">License</a>
+  </div>
+  <div class="footer-copy">© 2025 Ctrl Alt Win — All Rights Reserved</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
